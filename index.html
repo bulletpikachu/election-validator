@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSA Election Tally</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 0px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 0px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+        
+        .file-input-label:hover {
+            background: #764ba2;
+        }
+        
+        .file-name {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .results {
+            margin-top: 30px;
+        }
+        
+        .results-title {
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .vote-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 0px;
+            margin-bottom: 12px;
+            transition: transform 0.2s ease;
+        }
+        
+        .vote-result:hover {
+            transform: translateX(5px);
+            background: #f0f4ff;
+        }
+        
+        .vote-option {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .vote-count {
+            background: #667eea;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+        
+        .error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>dkim's election tally-inator</h1>
+        <p class="subtitle">counts votes which checking for valid student ids</p>
+        
+        <div class="upload-section">
+            <label>Step 1: Upload Valid Members CSV</label>
+            <div class="info-box">
+                <strong>Format:</strong> The CSV must contain a "Student ID" column
+            </div>
+            <div class="file-input-wrapper">
+                <input type="file" id="membersFile" accept=".csv" />
+                <label for="membersFile" class="file-input-label">Upload</label>
+            </div>
+            <div class="file-name" id="membersFileName"></div>
+            <div id="membersStatus"></div>
+        </div>
+        
+        <div id="votesSection" class="upload-section hidden">
+            <label>Step 2: Upload Votes CSV</label>
+            <div class="info-box">
+                📋 <strong>Expected Format:</strong> The CSV must contain a "Student ID" and "Vote" column
+            </div>
+            <div class="file-input-wrapper">
+                <input type="file" id="votesFile" accept=".csv" />
+                <label for="votesFile" class="file-input-label">Upload</label>
+            </div>
+            <div class="file-name" id="votesFileName"></div>
+        </div>
+        
+        <div id="message"></div>
+        <div id="results" class="results hidden">
+            <div class="results-title">Vote Tally Results</div>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let validStudentIds = new Set();
+
+        const membersFileInput = document.getElementById('membersFile');
+        const membersFileName = document.getElementById('membersFileName');
+        const membersStatus = document.getElementById('membersStatus');
+        const votesSection = document.getElementById('votesSection');
+        const votesFileInput = document.getElementById('votesFile');
+        const votesFileName = document.getElementById('votesFileName');
+        const messageDiv = document.getElementById('message');
+        const resultsDiv = document.getElementById('results');
+        const resultsContent = document.getElementById('resultsContent');
+
+        membersFileInput.addEventListener('change', handleMembersUpload);
+        votesFileInput.addEventListener('change', handleVotesUpload);
+
+        function handleMembersUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            membersFileName.textContent = `Selected: ${file.name}`;
+            messageDiv.innerHTML = '';
+            resultsDiv.classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const csv = event.target.result;
+                    loadMembers(csv);
+                } catch (error) {
+                    showError(`Error processing members file: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function loadMembers(csv) {
+            const rows = parseCSV(csv);
+            
+            if (rows.length < 2) {
+                showError('Members CSV must contain at least a header row and one member row.');
+                return;
+            }
+
+            const header = rows[0];
+            const studentIdIndex = findColumnIndex(header, ['student id', 'studentid', 'id']);
+
+            if (studentIdIndex === -1) {
+                showError('Could not find "Student ID" column in members CSV.');
+                return;
+            }
+
+            validStudentIds.clear();
+            let memberCount = 0;
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length <= studentIdIndex) continue;
+
+                const studentId = row[studentIdIndex].trim();
+                if (studentId) {
+                    validStudentIds.add(studentId);
+                    memberCount++;
+                }
+            }
+
+            if (memberCount === 0) {
+                showError('No valid Student IDs found in members CSV.');
+                return;
+            }
+
+            membersStatus.innerHTML = `<div class="success">✓ Loaded ${memberCount} members</div>`;
+            votesSection.classList.remove('hidden');
+            votesFileInput.value = '';
+            votesFileName.textContent = '';
+        }
+
+        function handleVotesUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (validStudentIds.size === 0) {
+                showError('Please upload members CSV first.');
+                votesFileInput.value = '';
+                return;
+            }
+
+            votesFileName.textContent = `Selected: ${file.name}`;
+            messageDiv.innerHTML = '';
+            resultsDiv.classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const csv = event.target.result;
+                    processVotes(csv);
+                } catch (error) {
+                    showError(`Error processing votes file: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const rows = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (!line.trim()) continue;
+                
+                // Simple CSV parsing - handles quoted fields
+                const row = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    const nextChar = line[j + 1];
+                    
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') {
+                            current += '"';
+                            j++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                
+                row.push(current.trim());
+                if (row.length > 0 && row.some(cell => cell)) {
+                    rows.push(row);
+                }
+            }
+            
+            return rows;
+        }
+
+        function processVotes(csv) {
+            const rows = parseCSV(csv);
+            
+            if (rows.length < 2) {
+                showError('CSV must contain at least a header row and one vote row.');
+                return;
+            }
+
+            const header = rows[0];
+            const studentIdIndex = findColumnIndex(header, ['student id', 'studentid', 'id']);
+            const voteIndex = findColumnIndex(header, ['vote', 'option', 'candidate', 'choice']);
+
+            if (studentIdIndex === -1) {
+                showError('Could not find "Student ID" column in CSV.');
+                return;
+            }
+            
+            if (voteIndex === -1) {
+                showError('Could not find "Vote" column in CSV.');
+                return;
+            }
+
+            const votes = {};
+            let validVotes = 0;
+            let invalidVotes = 0;
+            const invalidRecords = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.length <= Math.max(studentIdIndex, voteIndex)) continue;
+
+                const studentId = row[studentIdIndex].trim();
+                const vote = row[voteIndex].trim();
+
+                if (!studentId || !vote) continue;
+
+                if (validStudentIds.has(studentId)) {
+                    votes[vote] = (votes[vote] || 0) + 1;
+                    validVotes++;
+                } else {
+                    invalidVotes++;
+                    invalidRecords.push({ studentId, vote });
+                }
+            }
+
+            if (validVotes === 0) {
+                showError('No valid votes found. Please check that Student IDs match the member list.');
+                return;
+            }
+
+            displayResults(votes, validVotes, invalidVotes, invalidRecords);
+        }
+
+        function findColumnIndex(header, possibleNames) {
+            return header.findIndex(cell => 
+                possibleNames.includes(cell.toLowerCase().replace(/[^a-z0-9]/g, ''))
+            );
+        }
+
+        function displayResults(votes, validVotes, invalidVotes, invalidRecords) {
+            // Sort votes by count (descending)
+            const sortedVotes = Object.entries(votes)
+                .sort((a, b) => b[1] - a[1]);
+
+            let html = '';
+            
+            for (const [option, count] of sortedVotes) {
+                const percentage = ((count / validVotes) * 100).toFixed(1);
+                html += `
+                    <div class="vote-result">
+                        <div>
+                            <div class="vote-option">${escapeHtml(option)}</div>
+                            <div style="font-size: 12px; color: #999;">${percentage}%</div>
+                        </div>
+                        <div class="vote-count">${count}</div>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="stats">
+                    <div class="stats-item">
+                        <span>Total Valid Votes:</span>
+                        <strong>${validVotes}</strong>
+                    </div>
+                    <div class="stats-item">
+                        <span>Invalid Votes:</span>
+                        <strong style="color: #f44336;">${invalidVotes}</strong>
+                    </div>
+                </div>
+            `;
+
+            if (invalidVotes > 0 && invalidRecords.length > 0 && invalidRecords.length <= 10) {
+                html += `
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                        <div style="font-size: 13px; color: #f44336; font-weight: 600; margin-bottom: 8px;">
+                            Invalid Records (showing first 10):
+                        </div>
+                        <div style="font-size: 12px; color: #666;">
+                            ${invalidRecords.slice(0, 10).map(r => 
+                                `<div>ID: ${escapeHtml(r.studentId)} → Vote: ${escapeHtml(r.vote)}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultsContent.innerHTML = html;
+            resultsDiv.classList.remove('hidden');
+            
+            showSuccess(`Processed ${validVotes} valid vote(s)${invalidVotes > 0 ? ` and ignored ${invalidVotes} invalid vote(s)` : ''}`);
+        }
+
+        function showError(message) {
+            messageDiv.innerHTML = `<div class="error">⚠️ ${escapeHtml(message)}</div>`;
+        }
+
+        function showSuccess(message) {
+            messageDiv.innerHTML = `<div class="success">✓ ${escapeHtml(message)}</div>`;
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
