@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VSA Election Tally</title>
+    <link rel="icon" type="image/x-icon" href="/images/electiontally.png">
     <style>
         * {
             margin: 0;
@@ -195,7 +196,7 @@
         <div id="votesSection" class="upload-section hidden">
             <label>Step 2: Upload Votes CSV</label>
             <div class="info-box">
-                📋 <strong>Expected Format:</strong> The CSV must contain a "Student ID" and "Vote" column
+                <strong>Format:</strong> The CSV must contain a "Student ID" and "Vote" column
             </div>
             <div class="file-input-wrapper">
                 <input type="file" id="votesFile" accept=".csv" />
@@ -469,7 +470,7 @@
         }
 
         function showError(message) {
-            messageDiv.innerHTML = `<div class="error">⚠️ ${escapeHtml(message)}</div>`;
+            messageDiv.innerHTML = `<div class="error"> ${escapeHtml(message)}</div>`;
         }
 
         function showSuccess(message) {
